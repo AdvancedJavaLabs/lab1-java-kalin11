@@ -1,4 +1,4 @@
 Times for 2000000 vertices and 10000000 connections: 
-Serial: 1432
-Parallel: 3484
+Serial: 1134
+Parallel: 585
 --------

@@ -22,7 +22,7 @@ public class RandomGraphGenerator {
         return (int) (key & 0xffffffffL);
     }
 
-    Graph generateGraph(Random r, int size, int numEdges) {
+    public Graph generateGraph(Random r, int size, int numEdges) {
         if (size < 1) throw new IllegalArgumentException("size must be >= 1");
         if (numEdges < size - 1) throw new IllegalArgumentException("We need min size-1 edges");
         long maxDirected = (long) size * (size - 1);

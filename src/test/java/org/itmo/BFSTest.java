@@ -4,13 +4,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.Buffer;
-import java.util.HashSet;
 import java.util.Random;
-import java.util.function.BiFunction;
-import java.util.stream.IntStream;
 
 public class BFSTest {
+
 
     @Test
     public void bfsTest() throws IOException {
@@ -27,10 +24,11 @@ public class BFSTest {
                 System.out.println("Generation completed!\nStarting bfs");
                 long serialTime = executeSerialBfsAndGetTime(g);
                 long parallelTime = executeParallelBfsAndGetTime(g);
-                fw.append("Times for " + sizes[i] + " vertices and " + connections[i] + " connections: ");
-                fw.append("\nSerial: " + serialTime);
-                fw.append("\nParallel: " + parallelTime);
-                fw.append("\n--------\n");
+                fw
+                        .append("Times for ").append(String.valueOf(sizes[i])).append(" vertices and ").append(String.valueOf(connections[i])).append(" connections: ")
+                        .append("\nSerial: ").append(String.valueOf(serialTime))
+                        .append("\nParallel: ").append(String.valueOf(parallelTime))
+                        .append("\n--------\n");
             }
             fw.flush();
         }
@@ -46,7 +44,7 @@ public class BFSTest {
 
     private long executeParallelBfsAndGetTime(Graph g) {
         long startTime = System.currentTimeMillis();
-        g.parallelBFS(0, 5);
+        g.parallelBFS(0);
         long endTime = System.currentTimeMillis();
         return endTime - startTime;
     }
