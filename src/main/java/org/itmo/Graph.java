@@ -1,9 +1,7 @@
 package org.itmo;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.LinkedList;
 
 class Graph {
     private final int V;
