@@ -13,9 +13,12 @@ import org.openjdk.jcstress.infra.results.L_Result;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Collectors;
 
 @JCStressTest
@@ -23,68 +26,75 @@ import java.util.stream.Collectors;
 @Outcome(id = "false", expect = Expect.FORBIDDEN, desc = "Each vertex was visited more than one")
 @State
 public class GraphJCStressTestDataRace {
-    private static final int VERTICES = 100;
-    private static final int EDGES = 500;
+    private static final int VERTICES = 20;
 
     private final Graph graph;
-    private final List<AtomicBoolean> visited;
+    private final AtomicIntegerArray visited = new AtomicIntegerArray(VERTICES);
+    private Queue<Integer> currentLevel = new ConcurrentLinkedQueue<>();
+    private Queue<Integer> nextLevel = new ConcurrentLinkedQueue<>();
 
     public GraphJCStressTestDataRace() {
-        graph = new RandomGraphGenerator().generateGraph(new Random(42), VERTICES, EDGES);
-
-        visited = new ArrayList<>();
-        for (int i = 0; i < VERTICES; i++) {
-            visited.add(new AtomicBoolean(false));
+        graph = new Graph(VERTICES);
+        for (int i = 1; i < VERTICES; i++) {
+            graph.addEdge(0, i);
         }
+
+        currentLevel.add(0);
+        visited.compareAndSet(0, 0, 1);
     }
 
     @Actor
     public void actor1() {
-        // Modified parallelBFS to collect order
-        List<Integer> currentLevel = new ArrayList<>();
-        currentLevel.add(0);
-        visited.get(0).set(true);
+        Integer vertex;
+        while ((vertex = currentLevel.poll()) != null) {
+            graph.markVertexAsVisited(vertex, visited, nextLevel);
+        }
+    }
 
-        try {
-            while (!currentLevel.isEmpty()) {
-                List<List<Integer>> nextLevelSubLists = Collections.synchronizedList(new ArrayList<>());
-                List<Callable<Void>> tasks = new ArrayList<>();
+    @Actor
+    public void actor2() {
+        Integer vertex;
+        while ((vertex = currentLevel.poll()) != null) {
+            graph.markVertexAsVisited(vertex, visited, nextLevel);
+        }
+    }
 
-                for (int from = 0; from < currentLevel.size(); from += 10) {
-                    int to = Math.min(from + 10, currentLevel.size());
-                    List<Integer> batch = currentLevel.subList(from, to);
+    @Actor
+    public void actor3() {
+        Integer vertex;
+        while ((vertex = currentLevel.poll()) != null) {
+            graph.markVertexAsVisited(vertex, visited, nextLevel);
+        }
+    }
 
-                    tasks.add(() -> {
-                        List<Integer> nextLevelFromBatch = new ArrayList<>();
-                        for (int vertex : batch) {
-                            for (int child : graph.getAdjList().get(vertex)) {
-                                if (visited.get(child).compareAndSet(false, true)) {
-                                    nextLevelFromBatch.add(child);
-                                }
-                            }
-                        }
-                        nextLevelSubLists.add(nextLevelFromBatch);
-                        return null;
-                    });
-                }
+    @Actor
+    public void actor4() {
+        Integer vertex;
+        while ((vertex = currentLevel.poll()) != null) {
+            graph.markVertexAsVisited(vertex, visited, nextLevel);
+        }
+    }
 
-                graph.getExecutor().invokeAll(tasks);
-
-                currentLevel = nextLevelSubLists.stream()
-                        .flatMap(List::stream)
-                        .collect(Collectors.toList());
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } finally {
-            graph.getExecutor().shutdown();
+    @Actor
+    public void actor5() {
+        Integer vertex;
+        while ((vertex = currentLevel.poll()) != null) {
+            graph.markVertexAsVisited(vertex, visited, nextLevel);
         }
     }
 
     @Arbiter
     public void arbiter(L_Result r) {
-        System.out.println("АЛО " + visited.toString());
-        r.r1 = visited.stream().allMatch(AtomicBoolean::get);
+        // currentLevel исчерпан — делаем nextLevel новым уровнем
+        currentLevel = nextLevel;
+
+        // считаем количество вершин, которые были посещены
+        int visitedCount = 0;
+        for (int i = 0; i < VERTICES; i++) {
+            if (visited.get(i) == 1) visitedCount++;
+        }
+
+        r.r1 = visitedCount == VERTICES; // должно быть 10, если гонок нет
     }
 }
 

@@ -1,0 +1,70 @@
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 1
+Serial: 729
+Parallel: 549
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 2
+Serial: 493
+Parallel: 370
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 3
+Serial: 435
+Parallel: 284
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 4
+Serial: 435
+Parallel: 267
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 5
+Serial: 451
+Parallel: 290
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 6
+Serial: 460
+Parallel: 302
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 7
+Serial: 470
+Parallel: 345
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 8
+Serial: 470
+Parallel: 319
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 9
+Serial: 473
+Parallel: 331
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 10
+Serial: 456
+Parallel: 327
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 11
+Serial: 461
+Parallel: 383
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 12
+Serial: 425
+Parallel: 407
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 13
+Serial: 462
+Parallel: 398
+--------
+Times for 1000000 vertices and 10000000 connections: 
+Threads count: 14
+Serial: 395
+Parallel: 562
+--------

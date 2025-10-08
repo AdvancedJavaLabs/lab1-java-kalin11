@@ -4,79 +4,127 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Collectors;
 
 public class Graph {
-    private static final int BATCH_SIZE = 10_000;
+    private static final int NON_VISITED = 0;
+    private static final int VISITED = 1;
 
     private final int verticesCount;
-    private final List<List<Integer>> adjList;
-
-    private final ExecutorService executor;
+    private final List<Integer>[] adjList;
 
     public Graph(int vertices) {
         this.verticesCount = vertices;
-        this.adjList = new ArrayList<>();
-        for (int i = 0; i < vertices; i++) {
-            adjList.add(new ArrayList<>());
+        adjList = new ArrayList[vertices];
+
+        for (int i = 0; i < vertices; ++i) {
+            adjList[i] = new ArrayList<>();
         }
-        this.executor = Executors.newFixedThreadPool(8);
     }
 
     public void addEdge(int src, int dest) {
-        if (!adjList.get(src).contains(dest)) {
-            adjList.get(src).add(dest);
+        if (!adjList[src].contains(dest)) {
+            adjList[src].add(dest);
         }
     }
 
-    public void parallelBFS(int startVertex) {
-        List<AtomicBoolean> visited = new ArrayList<>();
+    public void parallelBFS(int startVertex, int threadsCount) {
+        // it's more effective than List<AtomicBoolean> that I've used before
+        AtomicIntegerArray visited = new AtomicIntegerArray(verticesCount);
 
-        for (int i = 0; i < verticesCount; i++) {
-            visited.add(new AtomicBoolean(false));
+        if (!visited.compareAndSet(startVertex, NON_VISITED, VISITED)) {
+            return;
         }
-        visited.get(startVertex).set(true);
 
-        List<Integer> currentLevel = new ArrayList<>();
+        Queue<Integer> currentLevel = new ConcurrentLinkedQueue<>();
         currentLevel.add(startVertex);
+
+        ExecutorService executorService = Executors.newFixedThreadPool(threadsCount);
 
         try {
             while (!currentLevel.isEmpty()) {
-                List<List<Integer>> nextLevelSubLists = Collections.synchronizedList(new ArrayList<>());
-                List<Callable<Void>> tasks = new ArrayList<>();
+                Queue<Integer> nextLevel = new ConcurrentLinkedQueue<>();
 
-                for (int from = 0; from < currentLevel.size(); from += BATCH_SIZE) {
-                    int to = Math.min(from + BATCH_SIZE, currentLevel.size());
-                    List<Integer> batch = currentLevel.subList(from, to);
+                CountDownLatch countDownLatch = new CountDownLatch(threadsCount);
+                Queue<Integer> currentLevelCopy = currentLevel;
 
-                    tasks.add(() -> {
-                        List<Integer> nextLevelFromBatch = new ArrayList<>();
-                        for (int vertex : batch) {
-                            for (int child : adjList.get(vertex)) {
-                                if (visited.get(child).compareAndSet(false, true)) {
-                                    nextLevelFromBatch.add(child);
-                                }
+                for (int i = 0; i < threadsCount; i++) {
+                    executorService.execute(() -> {
+                        while (true) {
+                            Integer vertex = currentLevelCopy.poll();
+                            if (vertex == null) {
+                                break;
                             }
+
+                            markVertexAsVisited(vertex, visited, nextLevel);
                         }
-                        nextLevelSubLists.add(nextLevelFromBatch);
-                        return null;
+
+                        countDownLatch.countDown();
                     });
                 }
 
-                executor.invokeAll(tasks);
+                try {
+                    countDownLatch.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
 
-                currentLevel = nextLevelSubLists.stream()
-                        .flatMap(List::stream)
-                        .collect(Collectors.toList());
+//                processGraphLevel(currentLevel, nextLevel, threadsCount, visited, executorService);
+
+                currentLevel = nextLevel;
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         } finally {
-            executor.shutdown();
+            executorService.shutdown();
+        }
+    }
+//
+//    private void processGraphLevel(
+//            final Queue<Integer> currentLevel,
+//            final Queue<Integer> nextLevel,
+//            int threadsCount,
+//            AtomicIntegerArray visited,
+//            ExecutorService executorService
+//    ) {
+//        CountDownLatch countDownLatch = new CountDownLatch(threadsCount);
+//        for (int i = 0; i < threadsCount; i++) {
+//            executorService.execute(() -> {
+//                while (true) {
+//                    Integer vertex = currentLevel.poll();
+//                    if (vertex == null) {
+//                        break;
+//                    }
+//
+//                    markVertexAsVisited(vertex, visited, nextLevel);
+//                }
+//
+//                countDownLatch.countDown();
+//            });
+//        }
+//
+//        try {
+//            countDownLatch.await();
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
+
+    public void markVertexAsVisited(
+            Integer vertex,
+            AtomicIntegerArray visited,
+            final Queue<Integer> nextLevel
+    ) {
+        for (int neighbor : adjList[vertex]) {
+            if (visited.compareAndSet(neighbor, NON_VISITED, VISITED)) {
+                nextLevel.add(neighbor);
+            }
         }
     }
 
@@ -92,20 +140,12 @@ public class Graph {
         while (!queue.isEmpty()) {
             startVertex = queue.poll();
 
-            for (int n : adjList.get(startVertex)) {
+            for (int n : adjList[startVertex]) {
                 if (!visited[n]) {
                     visited[n] = true;
                     queue.add(n);
                 }
             }
         }
-    }
-
-    public List<List<Integer>> getAdjList() {
-        return adjList;
-    }
-
-    public ExecutorService getExecutor() {
-        return executor;
     }
 }
