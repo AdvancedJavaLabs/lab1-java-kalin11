@@ -77,44 +77,12 @@ public class Graph {
                     throw new RuntimeException(e);
                 }
 
-//                processGraphLevel(currentLevel, nextLevel, threadsCount, visited, executorService);
-
                 currentLevel = nextLevel;
             }
         } finally {
             executorService.shutdown();
         }
     }
-//
-//    private void processGraphLevel(
-//            final Queue<Integer> currentLevel,
-//            final Queue<Integer> nextLevel,
-//            int threadsCount,
-//            AtomicIntegerArray visited,
-//            ExecutorService executorService
-//    ) {
-//        CountDownLatch countDownLatch = new CountDownLatch(threadsCount);
-//        for (int i = 0; i < threadsCount; i++) {
-//            executorService.execute(() -> {
-//                while (true) {
-//                    Integer vertex = currentLevel.poll();
-//                    if (vertex == null) {
-//                        break;
-//                    }
-//
-//                    markVertexAsVisited(vertex, visited, nextLevel);
-//                }
-//
-//                countDownLatch.countDown();
-//            });
-//        }
-//
-//        try {
-//            countDownLatch.await();
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
 
     public void markVertexAsVisited(
             Integer vertex,
