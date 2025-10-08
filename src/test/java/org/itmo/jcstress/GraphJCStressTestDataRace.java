@@ -85,16 +85,14 @@ public class GraphJCStressTestDataRace {
 
     @Arbiter
     public void arbiter(L_Result r) {
-        // currentLevel исчерпан — делаем nextLevel новым уровнем
         currentLevel = nextLevel;
 
-        // считаем количество вершин, которые были посещены
         int visitedCount = 0;
         for (int i = 0; i < VERTICES; i++) {
             if (visited.get(i) == 1) visitedCount++;
         }
 
-        r.r1 = visitedCount == VERTICES; // должно быть 10, если гонок нет
+        r.r1 = visitedCount == VERTICES;
     }
 }
 
